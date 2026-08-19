@@ -14,16 +14,164 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      miniatures: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          image_path: string | null
+          price_cents: number
+          published: boolean
+          stock: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          image_path?: string | null
+          price_cents?: number
+          published?: boolean
+          stock?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          image_path?: string | null
+          price_cents?: number
+          published?: boolean
+          stock?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reservation_items: {
+        Row: {
+          created_at: string
+          id: string
+          miniature_id: string | null
+          quantity: number
+          reservation_id: string
+          title: string
+          unit_price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          miniature_id?: string | null
+          quantity: number
+          reservation_id: string
+          title: string
+          unit_price_cents: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          miniature_id?: string | null
+          quantity?: number
+          reservation_id?: string
+          title?: string
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservation_items_miniature_id_fkey"
+            columns: ["miniature_id"]
+            isOneToOne: false
+            referencedRelation: "miniatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservation_items_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservations: {
+        Row: {
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          note: string | null
+          status: Database["public"]["Enums"]["reservation_status"]
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["reservation_status"]
+          total_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["reservation_status"]
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      mark_reservation_paid: {
+        Args: { _reservation_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      reservation_status: "pending" | "paid" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +298,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      reservation_status: ["pending", "paid", "cancelled"],
+    },
   },
 } as const
