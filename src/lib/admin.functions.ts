@@ -28,7 +28,16 @@ export type AdminReservation = {
 };
 
 async function assertAdmin(supabase: any) {
-  const { data: isAdmin } = await supabase.rpc('has_role', { _role: 'admin' });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Não autenticado.");
+  
+  const { data: isAdmin } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('role', 'admin')
+    .single();
+    
   if (!isAdmin) {
     throw new Error("Acesso restrito a administradores.");
   }
@@ -37,8 +46,17 @@ async function assertAdmin(supabase: any) {
 export const getAdminStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isAdmin } = await context.supabase.rpc('has_role', { _role: 'admin' });
-    return { isAdmin: Boolean(isAdmin) };
+    const { data: { user } } = await context.supabase.auth.getUser();
+    if (!user) return { isAdmin: false };
+    
+    const { data: isAdmin } = await context.supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+      
+    return { isAdmin: !!isAdmin };
   });
 
 export const listAdminMiniatures = createServerFn({ method: "GET" })

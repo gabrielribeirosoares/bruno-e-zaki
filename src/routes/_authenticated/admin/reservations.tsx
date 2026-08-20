@@ -17,7 +17,7 @@ import { cancelReservation, updateTrackingCode } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/reservations")({
   head: () => ({
-    meta: [{ title: "Bruno & Zaki Garage Diecast - Pedidos" }],
+    meta: [{ title: "Admin - Pedidos | Bruno & Zaki Garage Diecast" }],
   }),
   component: AdminReservationsPage,
 });

@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/admin/miniatures")({
   head: () => ({
-    meta: [{ title: "Bruno & Zaki Garage Diecast - Miniaturas" }],
+    meta: [{ title: "Admin - Miniaturas | Bruno & Zaki Garage Diecast" }],
   }),
   component: AdminMiniaturesPage,
 });
