@@ -95,10 +95,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "bruno-e-zaki-diecast" },
+      { title: "bruno-e-zaki" },
       { name: "description", content: "Loja e catálogo online para reserva e venda de miniaturas diecast (Hot Wheels, etc)." },
       { name: "author", content: "Equipe" },
-      { property: "og:title", content: "bruno-e-zaki-diecast" },
+      { property: "og:title", content: "bruno-e-zaki" },
       { property: "og:description", content: "Loja e catálogo online para reserva de miniaturas diecast." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
