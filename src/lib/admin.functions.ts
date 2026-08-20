@@ -231,3 +231,19 @@ export const updateTrackingCode = createServerFn({ method: "POST" })
     
     return { ok: true };
   });
+
+export const listCustomers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabase = context.supabase;
+    await assertAdmin(supabase);
+
+    const { data: profiles, error } = await supabase
+      .from("profiles")
+      .select("id, name, email, phone")
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+
+    return profiles || [];
+  });

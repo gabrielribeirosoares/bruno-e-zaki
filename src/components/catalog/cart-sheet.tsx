@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Minus, Plus, Trash2, Loader2, CheckCircle2 } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { Minus, Plus, Trash2, Loader2, CheckCircle2, Check, ChevronsUpDown } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,10 +20,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { useCart } from "@/hooks/use-cart";
 import { formatBRL } from "@/lib/format";
 import { createReservation } from "@/lib/catalog.functions";
+import { getAdminStatus, listCustomers } from "@/lib/admin.functions";
 import { reservationInputSchema } from "@/lib/catalog.schemas";
+
 
 type Props = {
   open: boolean;
@@ -33,11 +38,26 @@ type Props = {
 
 export function CartSheet({ open, onOpenChange, onReserved }: Props) {
   const { lines, totalCents, setQuantity, remove, clear } = useCart();
-  const [form, setForm] = useState({ note: "" });
+  const [form, setForm] = useState({ note: "", customerId: "" });
+  const [openCombobox, setOpenCombobox] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [done, setDone] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const submit = useServerFn(createReservation);
+  const fetchAdminStatus = useServerFn(getAdminStatus);
+  const fetchCustomers = useServerFn(listCustomers);
+
+  const { data: adminStatus } = useQuery({
+    queryKey: ["adminStatus"],
+    queryFn: () => fetchAdminStatus(),
+    enabled: !!user,
+  });
+
+  const { data: customers } = useQuery({
+    queryKey: ["customers"],
+    queryFn: () => fetchCustomers(),
+    enabled: !!adminStatus?.isAdmin,
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -55,6 +75,7 @@ export function CartSheet({ open, onOpenChange, onReserved }: Props) {
     mutationFn: async () => {
       const parsed = reservationInputSchema.safeParse({
         ...form,
+        customerId: form.customerId || undefined,
         items: lines.map((line) => ({ miniatureId: line.id, quantity: line.quantity })),
       });
       if (!parsed.success) {
@@ -147,6 +168,57 @@ export function CartSheet({ open, onOpenChange, onReserved }: Props) {
 
           {lines.length > 0 ? (
             <div className="space-y-3 pt-2">
+              {adminStatus?.isAdmin && (
+                <div className="space-y-1.5 flex flex-col">
+                  <Label htmlFor="customerId" className={errors["customerId"] ? "text-destructive" : ""}>
+                    Cliente (Obrigatório para Admin)
+                  </Label>
+                  <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openCombobox}
+                        className={cn("w-full justify-between font-normal", !form.customerId && "text-muted-foreground")}
+                      >
+                        {form.customerId
+                          ? (customers?.find((c: any) => c.id === form.customerId)?.name || customers?.find((c: any) => c.id === form.customerId)?.email || "Cliente selecionado")
+                          : "Selecione um cliente..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar cliente por nome ou telefone..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {customers?.map((c: any) => (
+                              <CommandItem
+                                key={c.id}
+                                value={`${c.name || ""} ${c.email || ""} ${c.phone || ""}`}
+                                onSelect={() => {
+                                  setForm({ ...form, customerId: c.id });
+                                  setOpenCombobox(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    form.customerId === c.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {c.name || c.email} {c.phone ? `(${c.phone})` : ""}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors["customerId"] && <p className="text-xs text-destructive">{errors["customerId"]}</p>}
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="note">Observação (opcional)</Label>
                 <Textarea

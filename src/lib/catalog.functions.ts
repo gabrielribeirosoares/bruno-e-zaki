@@ -45,17 +45,50 @@ export const createReservation = createServerFn({ method: "POST" })
     const typedData = data as ReservationInput;
     const supabase = context.supabase;
 
+    // Verifica se é admin
+    const { data: isAdminRole } = await supabase.rpc('has_role', { _role: 'admin' });
+    const isAdmin = Boolean(isAdminRole);
+
+    let targetUserId = context.userId;
+    let customerName = context.claims.user_metadata?.name || context.claims.name || context.claims.email || "Cliente";
+    let customerEmail = context.claims.email || "";
+    let customerPhone = context.claims.user_metadata?.phone || null;
+
+    if (isAdmin) {
+      if (!typedData.customerId) {
+        throw new Error("Admins não podem fazer reservas para si mesmos. Selecione um cliente.");
+      }
+      targetUserId = typedData.customerId;
+      
+      // Buscar dados do cliente
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name, email, phone")
+        .eq("id", targetUserId)
+        .single();
+        
+      if (profile) {
+        customerName = profile.name || "Cliente";
+        customerEmail = profile.email || "";
+        customerPhone = profile.phone || null;
+      } else {
+        throw new Error("Cliente selecionado não encontrado.");
+      }
+    } else if (typedData.customerId && typedData.customerId !== context.userId) {
+       throw new Error("Você não tem permissão para fazer reservas para outro cliente.");
+    }
+
     // Rate limiting: 5 reservas por minuto por usuário
     const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
     const { count, error: countError } = await supabase
       .from("reservations")
       .select("*", { count: "exact", head: true })
-      .eq("user_id", context.userId)
+      .eq("user_id", targetUserId)
       .gt("created_at", oneMinuteAgo);
 
     if (countError) throw new Error("Erro ao verificar limite de taxa.");
     if (count !== null && count >= 5) {
-      throw new Error("Muitas reservas seguidas. Aguarde um minuto e tente novamente.");
+      throw new Error("Muitas reservas seguidas para este cliente. Aguarde um minuto.");
     }
 
     const ids = [...new Set(typedData.items.map((item: any) => item.miniatureId))] as string[];
@@ -90,10 +123,10 @@ export const createReservation = createServerFn({ method: "POST" })
 
     const { error: insertError } = await supabase.from("reservations").insert({
       id: reservationId,
-      user_id: context.userId,
-      customer_name: context.claims.user_metadata?.name || context.claims.name || context.claims.email || "Cliente",
-      customer_email: context.claims.email || "",
-      customer_phone: context.claims.user_metadata?.phone || null,
+      user_id: targetUserId,
+      customer_name: customerName,
+      customer_email: customerEmail,
+      customer_phone: customerPhone,
       note: typedData.note || null,
       total_cents: totalCents,
       status: "pending",
