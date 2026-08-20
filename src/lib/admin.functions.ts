@@ -46,17 +46,25 @@ async function assertAdmin(supabase: any) {
 export const getAdminStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: { user } } = await context.supabase.auth.getUser();
-    if (!user) return { isAdmin: false };
+    const { data: { user }, error: authError } = await context.supabase.auth.getUser();
+    if (!user) return { isAdmin: false, debug: { error: "No user found", authError } };
     
-    const { data: isAdmin } = await context.supabase
+    const { data: isAdmin, error: dbError } = await context.supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .eq('role', 'admin')
       .maybeSingle();
       
-    return { isAdmin: !!isAdmin };
+    return { 
+      isAdmin: !!isAdmin,
+      debug: {
+        userId: user.id,
+        dbData: isAdmin,
+        dbError: dbError,
+        hasSupabaseUrl: !!process.env['VITE_SUPABASE_URL'] || !!process.env['SUPABASE_URL'],
+      }
+    };
   });
 
 export const listAdminMiniatures = createServerFn({ method: "GET" })

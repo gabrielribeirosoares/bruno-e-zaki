@@ -46,6 +46,10 @@ function AuthenticatedLayout() {
     enabled: isAuthenticated,
   });
 
+  if (adminStatus) {
+    console.log("Admin Status Debug:", adminStatus);
+  }
+
   if (isChecking || (isAuthenticated && isRoleLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
