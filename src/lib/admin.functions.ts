@@ -67,7 +67,7 @@ export const listAdminMiniatures = createServerFn({ method: "GET" })
 
 export const saveMiniature = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => miniatureInputSchema.parse(input))
+  .validator((input: unknown) => miniatureInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const supabase = context.supabase;
     await assertAdmin(supabase);
@@ -95,7 +95,7 @@ export const saveMiniature = createServerFn({ method: "POST" })
 
 export const deleteMiniature = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const supabase = context.supabase;
     await assertAdmin(supabase);
@@ -146,7 +146,7 @@ export const listReservations = createServerFn({ method: "GET" })
 
 export const markReservationPaid = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const supabase = context.supabase;
     await assertAdmin(supabase);
@@ -166,7 +166,7 @@ export const markReservationPaid = createServerFn({ method: "POST" })
 
 export const cancelReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const supabase = context.supabase;
     await assertAdmin(supabase);
@@ -212,7 +212,7 @@ export const cancelReservation = createServerFn({ method: "POST" })
 
 export const updateTrackingCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({
+  .validator((input: unknown) => z.object({
     ids: z.array(z.string().uuid()),
     trackingCode: z.string().trim()
   }).parse(input))

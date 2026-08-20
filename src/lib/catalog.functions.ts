@@ -40,7 +40,7 @@ export const listPublicMiniatures = createServerFn({ method: "GET" }).handler(as
 
 export const createReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => reservationInputSchema.parse(input))
+  .validator((input: unknown) => reservationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const typedData = data as ReservationInput;
     const supabase = context.supabase;

@@ -14,9 +14,9 @@ import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 
 // Initialize Sentry
-if (!globalThis.__SENTRY_INIT__) {
+if (!(globalThis as any).__SENTRY_INIT__) {
   Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN || "",
+    dsn: import.meta.env['VITE_SENTRY_DSN'] || "",
     integrations: [
       Sentry.browserTracingIntegration(),
       Sentry.replayIntegration(),
@@ -26,7 +26,7 @@ if (!globalThis.__SENTRY_INIT__) {
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
   });
-  globalThis.__SENTRY_INIT__ = true;
+  (globalThis as any).__SENTRY_INIT__ = true;
 }
 
 function NotFoundComponent() {
@@ -139,8 +139,20 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster />
+      <div className="flex min-h-screen flex-col">
+        <Outlet />
+        <Toaster />
+        
+        <footer className="mt-auto py-8 border-t border-border/40 text-center text-sm text-muted-foreground bg-background">
+          <div className="container mx-auto flex flex-wrap items-center justify-center gap-6 px-4">
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Política de Privacidade</Link>
+            <Link to="/terms" className="hover:text-foreground transition-colors">Termos de Uso</Link>
+          </div>
+          <div className="mt-4 text-xs opacity-60">
+            &copy; {new Date().getFullYear()} Bruno & Zaki Garage Diecast. Todos os direitos reservados.
+          </div>
+        </footer>
+      </div>
     </QueryClientProvider>
   );
 }

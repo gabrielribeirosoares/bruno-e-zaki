@@ -2,11 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { LogIn, UserPlus } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/auth")({
@@ -23,6 +25,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,6 +46,11 @@ function AuthPage() {
     e.preventDefault();
     if (!email || !password || (!isLogin && (!name || !phone))) {
       toast.error("Por favor, preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    if (!isLogin && !agreeTerms) {
+      toast.error("Você precisa concordar com os Termos de Uso e a Política de Privacidade.");
       return;
     }
 
@@ -145,6 +153,19 @@ function AuthPage() {
                     required={!isLogin}
                     maxLength={15}
                   />
+                </div>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox 
+                    id="terms" 
+                    checked={agreeTerms} 
+                    onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
+                  />
+                  <Label
+                    htmlFor="terms"
+                    className="text-xs font-medium leading-relaxed peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Eu concordo com os <Link to="/terms" className="text-primary hover:underline">Termos de Uso</Link> e a <Link to="/privacy" className="text-primary hover:underline">Política de Privacidade</Link>.
+                  </Label>
                 </div>
               </>
             )}
