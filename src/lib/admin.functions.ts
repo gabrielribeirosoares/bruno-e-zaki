@@ -43,7 +43,7 @@ async function assertAdmin(supabase: any) {
   }
 }
 
-export const getAdminStatus = createServerFn({ method: "GET" })
+export const getAdminStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data: { user } } = await context.supabase.auth.getUser();
