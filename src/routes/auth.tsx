@@ -21,6 +21,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -44,6 +45,29 @@ function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isForgotPassword) {
+      if (!email) {
+        toast.error("Por favor, preencha o seu email.");
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast.success("Link de recuperação enviado para o seu e-mail!");
+        setIsForgotPassword(false);
+      } catch (error: any) {
+        console.error(error);
+        toast.error(error.message || "Erro ao tentar enviar o e-mail de recuperação.");
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     if (!email || !password || (!isLogin && (!name || !phone))) {
       toast.error("Por favor, preencha todos os campos obrigatórios.");
       return;
@@ -80,7 +104,7 @@ function AuthPage() {
           }
         });
         if (error) throw error;
-        toast.success("Conta criada com sucesso!");
+        toast.success("Conta criada com sucesso! Verifique seu e-mail.");
       }
       
       const { data: isAdmin } = await supabase.rpc('has_role', { _role: 'admin' } as any);
@@ -119,17 +143,19 @@ function AuthPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">
-            {isLogin ? "Entrar" : "Criar conta"}
+            {isForgotPassword ? "Recuperar Senha" : isLogin ? "Entrar" : "Criar conta"}
           </CardTitle>
           <CardDescription>
-            {isLogin
+            {isForgotPassword
+              ? "Digite seu e-mail e enviaremos um link para redefinir sua senha."
+              : isLogin
               ? "Insira seu email e senha para acessar o painel."
               : "Preencha os dados abaixo para criar uma nova conta."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+            {!isLogin && !isForgotPassword && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome Completo</Label>
@@ -180,18 +206,33 @@ function AuthPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Senha</Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Esqueceu sua senha?
+                    </button>
+                  )}
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLogin ? (
+              {isForgotPassword ? (
+                "Enviar link de recuperação"
+              ) : isLogin ? (
                 <>
                   <LogIn className="mr-2 h-4 w-4" /> Entrar
                 </>
@@ -239,17 +280,28 @@ function AuthPage() {
             Google
           </Button>
         </CardContent>
-        <CardFooter>
-          <Button
-            variant="ghost"
-            className="w-full"
-            onClick={() => setIsLogin(!isLogin)}
-            disabled={isLoading}
-          >
-            {isLogin
-              ? "Não tem uma conta? Registre-se"
-              : "Já tem uma conta? Entre"}
-          </Button>
+        <CardFooter className="flex flex-col gap-2">
+          {isForgotPassword ? (
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setIsForgotPassword(false)}
+              disabled={isLoading}
+            >
+              Voltar para o login
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setIsLogin(!isLogin)}
+              disabled={isLoading}
+            >
+              {isLogin
+                ? "Não tem uma conta? Registre-se"
+                : "Já tem uma conta? Entre"}
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </div>
