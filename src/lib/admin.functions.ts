@@ -36,7 +36,7 @@ async function assertAdmin(supabase: any) {
     .select('role')
     .eq('user_id', user.id)
     .eq('role', 'admin')
-    .single();
+    .maybeSingle();
     
   if (!isAdmin) {
     throw new Error("Acesso restrito a administradores.");
@@ -54,7 +54,7 @@ export const getAdminStatus = createServerFn({ method: "GET" })
       .select('role')
       .eq('user_id', user.id)
       .eq('role', 'admin')
-      .single();
+      .maybeSingle();
       
     return { isAdmin: !!isAdmin };
   });
