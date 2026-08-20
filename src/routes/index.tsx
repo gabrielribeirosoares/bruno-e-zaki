@@ -1,9 +1,10 @@
+
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { motion } from "motion/react";
-import { ShoppingCart, Lock } from "lucide-react";
+import { ShoppingCart, Lock, Package, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,17 +13,20 @@ import { CartSheet } from "@/components/catalog/cart-sheet";
 import { CatalogSkeleton } from "@/components/catalog/catalog-skeleton";
 import { MiniatureCard } from "@/components/catalog/miniature-card";
 import { listPublicMiniatures, type PublicMiniature } from "@/lib/catalog.functions";
+import { getAdminStatus } from "@/lib/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Garagem Miniaturas — Catálogo e reserva de colecionáveis" },
+      { title: "Bruno & Zaki Garage Diecast — Catálogo e reserva de colecionáveis" },
       {
         name: "description",
         content:
           "Catálogo de miniaturas colecionáveis com reserva online: escolha seus modelos, monte o pedido e combine o pagamento direto com a loja.",
       },
-      { property: "og:title", content: "Garagem Miniaturas — Catálogo e reserva de colecionáveis" },
+      { property: "og:title", content: "Bruno & Zaki Garage Diecast — Catálogo e reserva de colecionáveis" },
       {
         property: "og:description",
         content: "Miniaturas colecionáveis em estoque limitado. Reserve seus modelos favoritos.",
@@ -42,8 +46,27 @@ function CatalogPage() {
 
 function Catalog() {
   const [cartOpen, setCartOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const fetchMiniatures = useServerFn(listPublicMiniatures);
   const { add, count, lines } = useCart();
+
+  const { data: adminStatus } = useQuery({
+    queryKey: ["adminStatus"],
+    queryFn: () => getAdminStatus(),
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["public-miniatures"],
@@ -65,16 +88,39 @@ function Catalog() {
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
           <Link to="/" className="text-xl uppercase tracking-wide">
-            <span className="text-gradient-ember font-display">Garagem</span>{" "}
-            <span className="font-display">Miniaturas</span>
+            <span className="text-gradient-ember font-display">Bruno & Zaki</span>{" "}
+            <span className="font-display">Garage Diecast</span>
           </Link>
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="gap-2">
-              <Link to="/auth">
-                <Lock className="size-4" />
-                <span className="hidden sm:inline">Área do admin</span>
-              </Link>
-            </Button>
+            {user ? (
+              <>
+                {adminStatus?.isAdmin ? (
+                  <Button asChild variant="ghost" size="sm" className="gap-2">
+                    <Link to="/admin/miniatures">
+                      <Lock className="size-4 text-emerald-500" />
+                      <span className="hidden sm:inline">Painel</span>
+                    </Link>
+                  </Button>
+                ) : null}
+                <Button asChild variant="ghost" size="sm" className="gap-2">
+                  <Link to="/orders">
+                    <Package className="size-4" />
+                    <span className="hidden sm:inline">Meus Pedidos</span>
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" className="gap-2" onClick={() => supabase.auth.signOut()}>
+                  <LogOut className="size-4" />
+                  <span className="hidden sm:inline">Sair</span>
+                </Button>
+              </>
+            ) : (
+              <Button asChild variant="ghost" size="sm" className="gap-2">
+                <Link to="/auth">
+                  <Lock className="size-4" />
+                  <span className="hidden sm:inline">Entrar</span>
+                </Link>
+              </Button>
+            )}
             <Button
               size="sm"
               className="gap-2"
@@ -98,23 +144,7 @@ function Catalog() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 pb-20">
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="py-12 md:py-16"
-        >
-          <p className="text-sm uppercase tracking-[0.3em] text-primary">Escala 1:64 e 1:18</p>
-          <h1 className="mt-3 max-w-2xl text-4xl uppercase leading-[1.05] md:text-6xl">
-            Miniaturas de garagem, <span className="text-gradient-ember">reserva sem enrolação</span>
-          </h1>
-          <p className="mt-4 max-w-xl text-muted-foreground">
-            Monte sua lista, envie o pedido de reserva e combine o pagamento direto com a loja. Sem
-            checkout, sem taxa, sem fila dupla.
-          </p>
-        </motion.section>
-
+      <main className="mx-auto max-w-7xl px-4 py-8 pb-20">
         <section aria-labelledby="catalogo">
           <h2 id="catalogo" className="mb-5 text-2xl uppercase">
             Catálogo
@@ -139,7 +169,7 @@ function Catalog() {
 
           {data && data.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {data.map((miniature, index) => (
+              {data.map((miniature: PublicMiniature, index: number) => (
                 <MiniatureCard
                   key={miniature.id}
                   miniature={miniature}

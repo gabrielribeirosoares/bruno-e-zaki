@@ -120,3 +120,26 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Configuração do Firebase
+
+Este projeto foi migrado de Supabase para Firebase. Certifique-se de configurar seu ambiente corretamente:
+
+1. **Variáveis de Ambiente**:
+   Crie um arquivo `.env` na raiz do projeto contendo as credenciais públicas do Firebase (`VITE_FIREBASE_*`) e as credenciais do Admin SDK (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`).
+
+2. **Permissão de Administrador**:
+   Para acessar o painel de admin, seu usuário precisa de uma _Custom Claim_ `admin: true`.
+   Registre um usuário através do painel na rota `/auth`. Em seguida, execute o script abaixo no servidor/terminal:
+   ```sh
+   npx tsx scripts/make-admin.ts seu-email@exemplo.com
+   ```
+   Após o sucesso, deslogue e logue novamente para obter os novos privilégios.
+
+## Testes End-to-End (E2E)
+
+Os testes E2E são executados utilizando o Playwright. Para executá-los:
+```sh
+npm install
+npx playwright test
+```

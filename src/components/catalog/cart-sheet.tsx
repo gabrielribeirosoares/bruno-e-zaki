@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Minus, Plus, Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,10 +33,23 @@ type Props = {
 
 export function CartSheet({ open, onOpenChange, onReserved }: Props) {
   const { lines, totalCents, setQuantity, remove, clear } = useCart();
-  const [form, setForm] = useState({ customerName: "", customerEmail: "", customerPhone: "", note: "" });
+  const [form, setForm] = useState({ note: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [done, setDone] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const submit = useServerFn(createReservation);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -132,36 +148,6 @@ export function CartSheet({ open, onOpenChange, onReserved }: Props) {
           {lines.length > 0 ? (
             <div className="space-y-3 pt-2">
               <div className="space-y-1.5">
-                <Label htmlFor="customerName">Nome</Label>
-                <Input
-                  id="customerName"
-                  maxLength={80}
-                  value={form.customerName}
-                  onChange={(event) => setForm({ ...form, customerName: event.target.value })}
-                  aria-invalid={Boolean(errors["customerName"])}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="customerEmail">E-mail</Label>
-                <Input
-                  id="customerEmail"
-                  type="email"
-                  maxLength={160}
-                  value={form.customerEmail}
-                  onChange={(event) => setForm({ ...form, customerEmail: event.target.value })}
-                  aria-invalid={Boolean(errors["customerEmail"])}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="customerPhone">Telefone (opcional)</Label>
-                <Input
-                  id="customerPhone"
-                  maxLength={30}
-                  value={form.customerPhone}
-                  onChange={(event) => setForm({ ...form, customerPhone: event.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
                 <Label htmlFor="note">Observação (opcional)</Label>
                 <Textarea
                   id="note"
@@ -197,15 +183,21 @@ export function CartSheet({ open, onOpenChange, onReserved }: Props) {
               {formatBRL(totalCents)}
             </span>
           </div>
-          <Button
-            className="w-full"
-            data-testid="submit-reservation"
-            disabled={lines.length === 0 || mutation.isPending}
-            onClick={() => mutation.mutate()}
-          >
-            {mutation.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-            Finalizar pedido de reserva
-          </Button>
+          {user ? (
+            <Button
+              className="w-full"
+              data-testid="submit-reservation"
+              disabled={lines.length === 0 || mutation.isPending}
+              onClick={() => mutation.mutate()}
+            >
+              {mutation.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+              Finalizar pedido de reserva
+            </Button>
+          ) : (
+            <Button asChild className="w-full" variant="secondary">
+              <Link to="/auth">Faça login para reservar</Link>
+            </Button>
+          )}
         </div>
       </SheetContent>
     </Sheet>

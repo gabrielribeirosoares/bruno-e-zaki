@@ -6,9 +6,6 @@ export const reservationItemSchema = z.object({
 });
 
 export const reservationInputSchema = z.object({
-  customerName: z.string().trim().min(2).max(80),
-  customerEmail: z.string().trim().email().max(160),
-  customerPhone: z.string().trim().max(30).optional().or(z.literal("")),
   note: z.string().trim().max(500).optional().or(z.literal("")),
   items: z.array(reservationItemSchema).min(1).max(20),
 });

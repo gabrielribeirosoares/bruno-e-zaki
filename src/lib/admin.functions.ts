@@ -22,45 +22,45 @@ export type AdminReservation = {
   note: string | null;
   totalCents: number;
   status: "pending" | "paid" | "cancelled";
+  trackingCode: string | null;
   createdAt: string;
   items: { id: string; title: string; quantity: number; unitPriceCents: number }[];
 };
 
-async function assertAdmin(supabase: {
-  rpc: (fn: "has_role", args: { _user_id: string; _role: "admin" }) => Promise<{ data: unknown }>;
-}, userId: string) {
-  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (data !== true) throw new Error("Acesso restrito a administradores.");
+async function assertAdmin(supabase: any) {
+  const { data: isAdmin } = await supabase.rpc('has_role', { _role: 'admin' });
+  if (!isAdmin) {
+    throw new Error("Acesso restrito a administradores.");
+  }
 }
 
 export const getAdminStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    return { isAdmin: data === true };
+    const { data: isAdmin } = await context.supabase.rpc('has_role', { _role: 'admin' });
+    return { isAdmin: Boolean(isAdmin) };
   });
 
 export const listAdminMiniatures = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { data, error } = await context.supabase
+    const supabase = context.supabase;
+    await assertAdmin(supabase);
+    
+    const { data: miniatures, error } = await supabase
       .from("miniatures")
-      .select("id, title, description, price_cents, stock, image_path, published")
+      .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) throw new Error("Não foi possível carregar as miniaturas.");
+    if (error) throw error;
 
-    return (data ?? []).map<AdminMiniature>((row) => ({
+    return (miniatures || []).map((row: any) => ({
       id: row.id,
       title: row.title,
-      description: row.description,
+      description: row.description || "",
       priceCents: row.price_cents,
       stock: row.stock,
-      imagePath: row.image_path,
+      imagePath: row.image_path ?? null,
       published: row.published,
     }));
   });
@@ -69,7 +69,8 @@ export const saveMiniature = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => miniatureInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    const supabase = context.supabase;
+    await assertAdmin(supabase);
 
     const payload = {
       title: data.title,
@@ -81,71 +82,149 @@ export const saveMiniature = createServerFn({ method: "POST" })
     };
 
     if (data.id) {
-      const { error } = await context.supabase.from("miniatures").update(payload).eq("id", data.id);
-      if (error) throw new Error("Não foi possível atualizar a miniatura.");
+      const { error } = await supabase.from("miniatures").update(payload).eq("id", data.id);
+      if (error) throw error;
       return { id: data.id };
     }
 
-    const { data: created, error } = await context.supabase
-      .from("miniatures")
-      .insert(payload)
-      .select("id")
-      .single();
+    const { data: inserted, error } = await supabase.from("miniatures").insert(payload).select().single();
+    if (error) throw error;
 
-    if (error || !created) throw new Error("Não foi possível criar a miniatura.");
-    return { id: created.id };
+    return { id: inserted.id };
   });
 
 export const deleteMiniature = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await context.supabase.from("miniatures").delete().eq("id", data.id);
-    if (error) throw new Error("Não foi possível excluir a miniatura.");
+    const supabase = context.supabase;
+    await assertAdmin(supabase);
+
+    const { error } = await supabase.from("miniatures").delete().eq("id", data.id);
+    if (error) throw error;
+    
     return { ok: true };
   });
 
 export const listReservations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { data, error } = await context.supabase
+    const supabase = context.supabase;
+    await assertAdmin(supabase);
+
+    const { data: reservations, error } = await supabase
       .from("reservations")
-      .select(
-        "id, customer_name, customer_email, customer_phone, note, total_cents, status, created_at, reservation_items(id, title, quantity, unit_price_cents)",
-      )
+      .select("*, reservation_items(*)")
       .order("created_at", { ascending: false })
       .limit(200);
+      
+    if (error) throw error;
 
-    if (error) throw new Error("Não foi possível carregar as reservas.");
-
-    return (data ?? []).map<AdminReservation>((row) => ({
-      id: row.id,
-      customerName: row.customer_name,
-      customerEmail: row.customer_email,
-      customerPhone: row.customer_phone,
-      note: row.note,
-      totalCents: row.total_cents,
-      status: row.status,
-      createdAt: row.created_at,
-      items: (row.reservation_items ?? []).map((item) => ({
-        id: item.id,
-        title: item.title,
-        quantity: item.quantity,
-        unitPriceCents: item.unit_price_cents,
-      })),
-    }));
+    return (reservations || []).map((row: any) => {
+      return {
+        id: row.id,
+        customerName: row.customer_name,
+        customerEmail: row.customer_email,
+        customerPhone: row.customer_phone,
+        note: row.note,
+        totalCents: row.total_cents,
+        status: row.status,
+        trackingCode: row.tracking_code,
+        createdAt: row.created_at || new Date().toISOString(),
+        items: (row.reservation_items ?? []).map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          quantity: item.quantity,
+          unitPriceCents: item.unit_price_cents,
+        })),
+      };
+    });
   });
 
 export const markReservationPaid = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await context.supabase.rpc("mark_reservation_paid", {
-      _reservation_id: data.id,
-    });
-    if (error) throw new Error("Não foi possível dar baixa no pedido.");
+    const supabase = context.supabase;
+    await assertAdmin(supabase);
+
+    // Call the RPC that acts as admin bypass
+    const { error } = await supabase.rpc('mark_reservation_paid', {
+      reservation_id: data.id
+    } as any);
+    
+    if (error) {
+      console.error(error);
+      throw error;
+    }
+    
+    return { ok: true };
+  });
+
+export const cancelReservation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase;
+    await assertAdmin(supabase);
+
+    // Get reservation and its items
+    const { data: reservation, error: fetchError } = await supabase
+      .from("reservations")
+      .select("status, reservation_items(miniature_id, quantity)")
+      .eq("id", data.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (reservation.status === "cancelled") throw new Error("Pedido já está cancelado.");
+
+    // Mark as cancelled
+    const { error: updateError } = await supabase
+      .from("reservations")
+      .update({ status: "cancelled" })
+      .eq("id", data.id);
+
+    if (updateError) throw updateError;
+
+    // Restore stock for each item
+    for (const item of reservation.reservation_items || []) {
+      if (!item.miniature_id) continue;
+      
+      const { data: mini } = await supabase
+        .from("miniatures")
+        .select("stock")
+        .eq("id", item.miniature_id)
+        .single();
+        
+      if (mini) {
+        await supabase
+          .from("miniatures")
+          .update({ stock: mini.stock + item.quantity })
+          .eq("id", item.miniature_id);
+      }
+    }
+
+    return { ok: true };
+  });
+
+export const updateTrackingCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    ids: z.array(z.string().uuid()),
+    trackingCode: z.string().trim()
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase;
+    await assertAdmin(supabase);
+
+    if (data.ids.length === 0) return { ok: true };
+
+    const { error } = await supabase
+      .from("reservations")
+      .update({ tracking_code: data.trackingCode || null } as any)
+      .in("id", data.ids);
+
+    if (error) throw error;
+    
     return { ok: true };
   });
