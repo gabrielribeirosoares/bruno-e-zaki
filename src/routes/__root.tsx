@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import * as Sentry from "@sentry/react";
 import {
   Outlet,
   Link,
@@ -11,7 +12,22 @@ import { useEffect, type ReactNode } from "react";
 
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+
+// Initialize Sentry
+if (!globalThis.__SENTRY_INIT__) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN || "",
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration(),
+    ],
+    tracesSampleRate: 1.0,
+    tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+  });
+  globalThis.__SENTRY_INIT__ = true;
+}
 
 function NotFoundComponent() {
   return (
@@ -39,7 +55,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    console.error("Root Error Boundary caught:", error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (
@@ -78,11 +95,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Hot Wheels API" },
+      { name: "description", content: "Sistema Zaki e Bruno" },
+      { name: "author", content: "Equipe" },
+      { property: "og:title", content: "Hot Wheels App" },
+      { property: "og:description", content: "App" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
@@ -122,7 +139,6 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster />
     </QueryClientProvider>

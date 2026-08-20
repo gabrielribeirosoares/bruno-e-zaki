@@ -3,6 +3,7 @@ import { ShoppingBag } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
 import type { PublicMiniature } from "@/lib/catalog.functions";
 
@@ -27,13 +28,26 @@ export function MiniatureCard({ miniature, index, onAdd, inCart }: Props) {
     >
       <div className="relative aspect-4/3 overflow-hidden bg-muted">
         {miniature.imageUrl ? (
-          <img
-            src={miniature.imageUrl}
-            alt={`Miniatura ${miniature.title}`}
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-          />
+          <Dialog>
+            <DialogTrigger asChild>
+              <button type="button" className="h-full w-full outline-none cursor-zoom-in">
+                <img
+                  src={miniature.imageUrl}
+                  alt={`Miniatura ${miniature.title}`}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/90 border-none flex items-center justify-center">
+              <img
+                src={miniature.imageUrl}
+                alt={`Miniatura ${miniature.title}`}
+                className="w-full h-auto max-h-[85vh] object-contain"
+              />
+            </DialogContent>
+          </Dialog>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
             Sem foto

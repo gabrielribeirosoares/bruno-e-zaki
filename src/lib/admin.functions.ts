@@ -114,7 +114,7 @@ export const listReservations = createServerFn({ method: "GET" })
 
     const { data: reservations, error } = await supabase
       .from("reservations")
-      .select("*, reservation_items(*)")
+      .select("*, reservation_items(*, miniatures(image_path))")
       .order("created_at", { ascending: false })
       .limit(200);
       
@@ -136,6 +136,9 @@ export const listReservations = createServerFn({ method: "GET" })
           title: item.title,
           quantity: item.quantity,
           unitPriceCents: item.unit_price_cents,
+          imageUrl: item.miniatures?.image_path 
+            ? supabase.storage.from("miniatures").getPublicUrl(item.miniatures.image_path).data.publicUrl 
+            : null
         })),
       };
     });

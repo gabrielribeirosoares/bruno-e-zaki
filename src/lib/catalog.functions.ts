@@ -36,27 +36,27 @@ export const listPublicMiniatures = createServerFn({ method: "GET" }).handler(as
   }));
 });
 
-const reservationHits = new Map<string, number[]>();
 
-function throttle(key: string, limit: number, windowMs: number): boolean {
-  const now = Date.now();
-  const hits = (reservationHits.get(key) ?? []).filter((time) => now - time < windowMs);
-  hits.push(now);
-  reservationHits.set(key, hits);
-  return hits.length <= limit;
-}
 
 export const createReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => reservationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const typedData = data as ReservationInput;
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
-    if (!throttle(`reservation:${ip}`, 5, 60_000)) {
+    const supabase = context.supabase;
+
+    // Rate limiting: 5 reservas por minuto por usuário
+    const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+    const { count, error: countError } = await supabase
+      .from("reservations")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .gt("created_at", oneMinuteAgo);
+
+    if (countError) throw new Error("Erro ao verificar limite de taxa.");
+    if (count !== null && count >= 5) {
       throw new Error("Muitas reservas seguidas. Aguarde um minuto e tente novamente.");
     }
-
-    const supabase = context.supabase;
 
     const ids = [...new Set(typedData.items.map((item: any) => item.miniatureId))] as string[];
     if (ids.length === 0) throw new Error("A reserva deve conter itens.");
@@ -131,7 +131,7 @@ export const listMyReservations = createServerFn({ method: "GET" })
     
     const { data: reservations, error } = await supabase
       .from("reservations")
-      .select("*, reservation_items(*)")
+      .select("*, reservation_items(*, miniatures(image_path))")
       .eq("user_id" as any, context.userId)
       .order("created_at", { ascending: false });
       
@@ -144,7 +144,12 @@ export const listMyReservations = createServerFn({ method: "GET" })
         totalCents: d.total_cents,
         trackingCode: d.tracking_code,
         createdAt: d.created_at || new Date().toISOString(),
-        items: d.reservation_items || [],
+        items: (d.reservation_items || []).map((item: any) => ({
+          ...item,
+          imageUrl: item.miniatures?.image_path 
+            ? supabase.storage.from("miniatures").getPublicUrl(item.miniatures.image_path).data.publicUrl 
+            : null
+        })),
       };
     });
   });

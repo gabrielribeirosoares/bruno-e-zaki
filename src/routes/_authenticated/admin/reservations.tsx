@@ -154,13 +154,13 @@ function AdminReservationsPage() {
                         onCheckedChange={toggleSelectAll}
                       />
                     </TableHead>
-                    <TableHead className="whitespace-nowrap">ID / Data</TableHead>
-                    <TableHead className="whitespace-nowrap">Cliente</TableHead>
-                    <TableHead className="min-w-[200px]">Itens</TableHead>
-                    <TableHead className="whitespace-nowrap">Total</TableHead>
-                    <TableHead className="whitespace-nowrap">Status</TableHead>
-                    <TableHead className="whitespace-nowrap">Rastreio</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Ação</TableHead>
+                    <TableHead className="hidden sm:table-cell whitespace-nowrap">ID / Data</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="min-w-[150px]">Itens</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell whitespace-nowrap">Rastreio</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -172,7 +172,7 @@ function AdminReservationsPage() {
                           onCheckedChange={() => toggleSelect(res.id)}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="hidden sm:table-cell font-medium">
                         <div className="truncate w-24" title={res.id}>
                           {res.id.split("-")[0]}
                         </div>
@@ -180,23 +180,31 @@ function AdminReservationsPage() {
                           {new Date(res.createdAt).toLocaleDateString("pt-BR")}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{res.customerName}</div>
-                        <div className="text-xs text-muted-foreground">{res.customerEmail}</div>
+                      <TableCell className="max-w-[140px] align-top">
+                        <div className="font-medium break-words leading-tight">{res.customerName}</div>
+                        <div className="text-xs text-muted-foreground break-all mt-1">{res.customerEmail}</div>
                         {res.customerPhone && (
                           <div className="text-xs text-muted-foreground">{res.customerPhone}</div>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
+                      <TableCell className="max-w-[200px] align-top whitespace-normal">
+                        <div className="space-y-3">
                           {res.items.map((item: any) => (
-                            <div key={item.id} className="text-sm flex items-center gap-1">
-                              <Package className="h-3 w-3 text-muted-foreground" />
-                              <span className="font-medium">{item.quantity}x</span> {item.title}
+                            <div key={item.id} className="text-sm flex items-start gap-3 leading-tight">
+                              {item.imageUrl ? (
+                                <img src={item.imageUrl} alt={item.title} className="w-16 h-12 shrink-0 rounded object-cover border border-border/50" />
+                              ) : (
+                                <div className="w-16 h-12 shrink-0 rounded bg-muted flex items-center justify-center border border-border/50">
+                                  <Package className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className="flex flex-col py-1">
+                                <span className="break-words font-medium"><span className="text-muted-foreground font-normal">{item.quantity}x</span> {item.title}</span>
+                              </div>
                             </div>
                           ))}
                           {res.note && (
-                            <div className="mt-2 pt-2 text-xs italic text-muted-foreground border-t border-border/50">
+                            <div className="mt-2 pt-2 text-xs italic text-muted-foreground border-t border-border/50 break-words leading-relaxed">
                               <span className="font-semibold not-italic">Obs:</span> {res.note}
                             </div>
                           )}
@@ -205,7 +213,7 @@ function AdminReservationsPage() {
                       <TableCell>
                         {(res.totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="align-top">
                         <div className="flex flex-col gap-2 items-start">
                           {res.status === "paid" ? (
                             <Badge className="bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25 border-emerald-500/20">Pago</Badge>
@@ -216,16 +224,16 @@ function AdminReservationsPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="hidden md:table-cell align-top">
                         {res.trackingCode ? (
-                          <div className="flex items-center gap-1">
+                          <div className="flex flex-wrap items-center gap-1">
                             <Badge variant="secondary" className="font-mono text-xs font-normal h-6 rounded-sm">
                               {res.trackingCode}
                             </Badge>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6"
+                              className="h-6 w-6 shrink-0"
                               onClick={() => {
                                 navigator.clipboard.writeText(res.trackingCode);
                                 toast.success("Código copiado!");
@@ -239,13 +247,13 @@ function AdminReservationsPage() {
                           <span className="text-xs text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
+                      <TableCell className="text-right align-top">
                         {res.status === "pending" && (
-                          <div className="flex justify-end gap-2">
+                          <div className="flex flex-col sm:flex-row justify-end gap-2">
                             <Button 
                               variant="outline"
                               size="sm"
-                              className="text-destructive hover:bg-destructive/10"
+                              className="text-destructive hover:bg-destructive/10 w-full sm:w-auto"
                               disabled={cancelMutation.isPending}
                               onClick={() => {
                                 if (confirm(`Tem certeza que deseja cancelar o pedido de ${res.customerName} e devolver os itens ao estoque?`)) {
@@ -257,17 +265,18 @@ function AdminReservationsPage() {
                             </Button>
                             <Button 
                               variant="default"
-                            size="sm"
-                            disabled={markPaidMutation.isPending}
-                            onClick={() => {
-                              if (confirm(`Confirmar o pagamento do pedido de ${res.customerName}?`)) {
-                                markPaidMutation.mutate({ data: { id: res.id } });
-                              }
-                            }}
-                          >
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                            Dar Baixa
-                          </Button>
+                              size="sm"
+                              className="w-full sm:w-auto"
+                              disabled={markPaidMutation.isPending}
+                              onClick={() => {
+                                if (confirm(`Confirmar o pagamento do pedido de ${res.customerName}?`)) {
+                                  markPaidMutation.mutate({ data: { id: res.id } });
+                                }
+                              }}
+                            >
+                              <CheckCircle2 className="sm:mr-2 h-4 w-4 shrink-0" />
+                              <span className="hidden sm:inline">Dar Baixa</span>
+                            </Button>
                           </div>
                         )}
                       </TableCell>

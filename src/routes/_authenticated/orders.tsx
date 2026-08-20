@@ -62,11 +62,19 @@ function CustomerOrdersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
+                        <div className="space-y-3">
                           {res.items.map((item: any) => (
-                            <div key={item.id} className="text-sm flex items-center gap-1">
-                              <Package className="h-3 w-3 text-muted-foreground" />
-                              <span className="font-medium">{item.quantity}x</span> {item.title}
+                            <div key={item.id} className="text-sm flex items-start gap-3">
+                              {item.imageUrl ? (
+                                <img src={item.imageUrl} alt={item.title} className="w-20 h-14 shrink-0 rounded-md object-cover border border-border/50" />
+                              ) : (
+                                <div className="w-20 h-14 shrink-0 rounded-md bg-muted flex items-center justify-center border border-border/50">
+                                  <Package className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className="flex flex-col py-1">
+                                <span className="font-medium text-foreground">{item.quantity}x {item.title}</span>
+                              </div>
                             </div>
                           ))}
                         </div>

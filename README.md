@@ -98,17 +98,7 @@ Configurar varreduras automáticas de vulnerabilidade em dependências (ex: npm 
 
 NUNCA adicione comentários explicativos dentro de blocos de código (JavaScript, TypeScript, Python, HTML, CSS, SQL, etc.). Entregue o código totalmente limpo.
 
-This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://bruno-e-zaki.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/7fbf95a8-6efc-48ce-adf9-fb658425b85f).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
