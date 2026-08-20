@@ -146,9 +146,13 @@ function Catalog() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 pb-20">
         <section aria-labelledby="catalogo">
-          <h2 id="catalogo" className="mb-5 text-2xl uppercase">
+          <h2 id="catalogo" className="text-2xl uppercase">
             Catálogo
           </h2>
+          <p className="mb-6 mt-1 text-sm text-muted-foreground">
+            A Bruno & Zaki Garage Diecast é uma loja online especializada em miniaturas colecionáveis (diecast). 
+            Navegue pelo nosso catálogo, faça login com sua conta para gerenciar seus pedidos e reserve as suas peças favoritas antes que o estoque acabe.
+          </p>
 
           {isPending ? <CatalogSkeleton /> : null}
 
